@@ -3,6 +3,8 @@ import urllib.request
 import urllib.error
 import csv
 from datetime import datetime
+from os import path
+import time
 import locale
 import sqlite3
 
@@ -33,13 +35,13 @@ def cleandb(db):
     dbclose(dbconn)
 
 
-def checkdb(db):
+def checkdb(db, filename):
     dif = 0
     dbconn = dbopen(db)
     r = dbconn.execute("Select * from info69b").fetchall()
     if len(r) > 0:
         fchdb = datetime.strptime(r[0][0], '%Y-%m-%d %H:%M:%S')
-        csvfile = open(f)
+        csvfile = open(filename)
         readfile = csv.reader(csvfile, delimiter=',')
         rwfch = readfile.__next__()
         fchfile = datetime.strptime(rwfch[0][rwfch[0].find(' al ') + 5:], '%d de %B de %Y')
@@ -51,12 +53,18 @@ def checkdb(db):
 
 def getfile(url, filename):
     dl = False
-    while not dl:
+    gf_i = 0
+    print('Getting file...')
+    while not dl and gf_i < 10:
         try:
+            print('Try #{}'.format(gf_i))
             urllib.request.urlretrieve(url, filename)
             dl = True
+            print('Success!')
         except urllib.error.URLError as e:
             print(e.reason, " -- ", url)
+            time.sleep(60)
+            gf_i += 1
 
 
 def getnum(data):
@@ -77,7 +85,7 @@ def dateconvert(dtafch, ln):
             fechadt = datetime.strptime(dtafch[dtafch.find('de fecha')+9:], fmat)
             done = True
         except ValueError as e:
-            # print(e, '|', ln, '|', dtafch, '|', dtafch[dtafch.find('de fecha') + 9:])
+            print(e, '|', ln, '|', dtafch, '|', dtafch[dtafch.find('de fecha') + 9:])
             if str(e).find('remains') != -1:
                 dtafch = dtafch[:-1]
             else:
@@ -93,7 +101,9 @@ u = 'http://omawww.sat.gob.mx/cifras_sat/Documents/Listado_Completo_69-B.csv'
 f = 'artic69full.csv'
 dbs = 'C:\\Users\\Charly\\Dropbox\\Work\\CFDIs\\art69b.sqlite'  # db = 'E:\\Dropbox\\Dropbox\\Work\\CFDIs\\CFDIs.sqlite'
 getfile(u, f)
-d = checkdb(dbs)
+if not path.exists(f):
+    raise SystemExit('No se encontró {}'.format(f))
+d = checkdb(dbs, f)
 if d != 0:
     cleandb(dbs)
     dbcon = dbopen(dbs)
