@@ -3,6 +3,7 @@ import urllib.request
 import urllib.error
 import csv
 from datetime import datetime
+from datetime import timedelta
 from os import path
 import time
 import locale
@@ -44,11 +45,14 @@ def checkdb(db, filename):
         csvfile = open(filename)
         readfile = csv.reader(csvfile, delimiter=',')
         rwfch = readfile.__next__()
-        fchfile = datetime.strptime(rwfch[0][rwfch[0].find(' al ') + 5:], '%d de %B de %Y')
+        fchfile = datetime.strptime(rwfch[0][rwfch[0].find(' al ') + 4:], '%d de %B de %Y')
         csvfile.close()
         dif = fchdb - fchfile
     dbclose(dbconn)
-    return dif.total_seconds()
+    if type(dif) is not timedelta:
+        return 1
+    else:
+        return dif.total_seconds()
 
 
 def getfile(url, filename):
@@ -68,24 +72,59 @@ def getfile(url, filename):
 
 
 def getnum(data):
+    if data.find('//') != -1:
+        data = str(data).split('//')[-1]
+    data = data.strip()
     if data.find('de fecha') != -1:
         return data[:data.find('de fecha') - 1]
     else:
         return data
 
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        pass
+
+    try:
+        import unicodedata
+        unicodedata.numeric(s)
+        return True
+    except (TypeError, ValueError):
+        pass
+
+    return False
+
+
 def dateconvert(dtafch, ln):
+    err = ''
     done = False
     fmat = '%d de %B de %Y'
     fechadt = None
+    if dtafch.find('//') != -1:
+        dtafch = str(dtafch).split('//')[-1]
     if dtafch.find('de fecha') == -1:
         return None
     while not done:
         try:
-            fechadt = datetime.strptime(dtafch[dtafch.find('de fecha')+9:], fmat)
+            fstr = dtafch[dtafch.find('de fecha')+9:]
+            for char in fstr:
+                if char in "?":
+                    fstr = fstr.replace(char, '')
+            fstr = fstr.strip()
+            if not(is_number(fstr[0]) and is_number(fstr[1])):
+                fstr = '0' + fstr
+            fechadt = datetime.strptime(fstr, fmat)
             done = True
         except ValueError as e:
-            print(e, '|', ln, '|', dtafch, '|', dtafch[dtafch.find('de fecha') + 9:])
+            if err == '':
+                err = '|' + ln + '|' + dtafch
+            else:
+                if len(dtafch) == 0:
+                    print(err)
+            # print(e, '|', ln, '|', dtafch, '|', dtafch[dtafch.find('de fecha') + 9:])
             if str(e).find('remains') != -1:
                 dtafch = dtafch[:-1]
             else:
@@ -99,7 +138,8 @@ def dateconvert(dtafch, ln):
 locale.setlocale(locale.LC_ALL, 'Spanish_Mexico')
 u = 'http://omawww.sat.gob.mx/cifras_sat/Documents/Listado_Completo_69-B.csv'
 f = 'artic69full.csv'
-dbs = 'C:\\Users\\Charly\\Dropbox\\Work\\CFDIs\\art69b.sqlite'  # db = 'E:\\Dropbox\\Dropbox\\Work\\CFDIs\\CFDIs.sqlite'
+# dbs = 'C:\\Users\\Charly\\Dropbox\\Work\\CFDIs\\art69b.sqlite'
+dbs = 'E:\\Dropbox\\Dropbox\\Work\\CFDIs\\art69b.sqlite'
 getfile(u, f)
 if not path.exists(f):
     raise SystemExit('No se encontró {}'.format(f))
@@ -117,13 +157,14 @@ if d != 0:
         headers = ''
         for row in readCSV:
             if i == 0:
-                fecha = datetime.strptime(row[0][row[0].find(' al ')+5:], '%d de %B de %Y')
+                fecha = datetime.strptime(row[0][row[0].find(' al ')+4:], '%d de %B de %Y')
             elif i == 2:
                 headers = row
                 headers[0] = 'id'
                 while '' in headers:
                     headers.remove('')
             elif i >= 3:
+                # print(i, row[1])
                 nfogpr = row[4]
                 nfogdv = row[9]
                 nfogdf = row[11]
