@@ -137,9 +137,9 @@ def dateconvert(dtafch, ln):
 
 locale.setlocale(locale.LC_ALL, 'Spanish_Mexico')
 u = 'http://omawww.sat.gob.mx/cifras_sat/Documents/Listado_Completo_69-B.csv'
-f = 'artic69full.csv'
-# dbs = 'C:\\Users\\Charly\\Dropbox\\Work\\CFDIs\\art69b.sqlite'
-dbs = 'E:\\Dropbox\\Dropbox\\Work\\CFDIs\\art69b.sqlite'
+f = 'artic69bfull.csv'
+dbs = 'C:\\Users\\Charly\\Dropbox\\Work\\CFDIs\\art69b.sqlite'
+# dbs = 'E:\\Dropbox\\Dropbox\\Work\\CFDIs\\art69b.sqlite'
 getfile(u, f)
 if not path.exists(f):
     raise SystemExit('No se encontró {}'.format(f))
